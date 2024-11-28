@@ -47,9 +47,29 @@ class OdooService
     }
 
     /*INICIO PRODUCTO SERVICIO*/
+    public function traerProductosFavoritos()
+    {
+        return $this->productoService->traerProductosFavoritos();
+    }
+
     public function traerCategorias()
     {
         return $this->productoService->traerCategorias();
+    }
+
+    public function traerSubcategorias($id)
+    {
+        return $this->productoService->traerSubcategorias($id);
+    }
+
+    public function traerAtributos()
+    {
+        return $this->productoService->traerAtributos();
+    }
+
+    public function traerValoresAtributos($id)
+    {
+        return $this->productoService->traerValoresAtributos($id);
     }
     /*FIN PRODUCTO SERVICIO*/
 }
