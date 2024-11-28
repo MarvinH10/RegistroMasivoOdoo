@@ -1,0 +1,55 @@
+<?php
+
+namespace App\Services;
+
+use App\Services\Producto\ProductoService;
+use Exception;
+use Illuminate\Support\Facades\Auth;
+use Ripcord\Ripcord;
+
+class OdooService
+{
+    protected $url;
+    protected $base_datos;
+    protected $usuario;
+    protected $contraseña;
+    protected $uid;
+    protected $modelos;
+    public $productoService;
+
+    public function __construct()
+    {
+        $this->url = env('APP_ODOO_URL');
+        $this->base_datos = env('APP_ODOO_BASE_DATOS');
+        $this->modelos = Ripcord::client("$this->url/xmlrpc/2/object");
+    }
+
+    public function authenticate()
+    {
+        $autenticado = Auth::user();
+
+        if (!$autenticado) {
+            throw new Exception('Usuario no autenticado');
+        }
+
+        $common_cliente = Ripcord::client("$this->url/xmlrpc/2/common");
+        $this->usuario = $autenticado->email;
+        $this->contraseña = $autenticado->token;
+        $this->uid = $common_cliente->authenticate($this->base_datos, $this->usuario, $this->contraseña, array());
+
+        if (!$this->uid) {
+            throw new Exception('Error de autenticación con Odoo');
+        }
+
+        $this->productoService = new ProductoService($this->modelos, $this->base_datos, $this->uid, $this->contraseña);
+
+        return $this->uid;
+    }
+
+    /*INICIO PRODUCTO SERVICIO*/
+    public function traerCategorias()
+    {
+        return $this->productoService->traerCategorias();
+    }
+    /*FIN PRODUCTO SERVICIO*/
+}
