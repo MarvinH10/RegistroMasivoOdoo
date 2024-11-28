@@ -3,6 +3,7 @@
 namespace App\Http\Controllers;
 
 use App\Services\OdooService;
+use Inertia\Inertia;
 
 class ProductoController extends Controller
 {
@@ -12,6 +13,13 @@ class ProductoController extends Controller
     {
         $this->ServicioOdoo = $ServicioOdoo;
     }
+
+    /*INICIO FUNCIONALIDADES EN VISTA*/
+    public function index()
+    {
+        return Inertia::render('Producto/Producto');
+    }
+    /*FINAL FUNCIONALIDADES EN VISTA*/
 
     public function traerProductosFavoritos()
     {
