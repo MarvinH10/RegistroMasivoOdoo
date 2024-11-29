@@ -1,4 +1,7 @@
 <script setup>
+import { reactive } from "vue";
+import axios from "axios";
+
 defineProps({
   mostrar: {
     type: Boolean,
@@ -8,26 +11,80 @@ defineProps({
     type: Function,
     required: true,
   },
+  categorias: {
+    type: Array,
+    required: true,
+  },
+  atributos: {
+    type: Array,
+    required: true,
+  },
+  valoresAtributos: {
+    type: Array,
+    required: true,
+  },
 });
 
 defineEmits(["close", "save"]);
 
-import { reactive } from "vue";
-
 const producto = reactive({
   nombre: "",
   codigo: "",
-  categoria: "",
-  areaAplicacion: "",
-  tipoProducto: "",
-  activoPresentacion: "",
-  marca: "",
+  categoriaPrincipal: "",
+  subcategoriasSeleccionadas: ["", "", "", ""],
+  subcategoriasDisponibles: [[], [], [], []],
   precioVenta: 0,
   atributos: [],
 });
 
+const cargarSubcategorias = async (categoriaId, nivel) => {
+  try {
+    if (categoriaId) {
+      const response = await axios.get(
+        `/productos/subcategorias/traer/${categoriaId}`
+      );
+      producto.subcategoriasDisponibles[nivel - 1] = response.data;
+    } else {
+      producto.subcategoriasDisponibles[nivel - 1] = [];
+    }
+    limpiarSubcategoriasInferiores(nivel);
+  } catch (error) {
+    console.error(`Error al cargar subcategorías para nivel ${nivel}:`, error);
+  }
+};
+
+const actualizarSubcategorias = async (nivel, categoriaId) => {
+  try {
+    await cargarSubcategorias(categoriaId, nivel);
+  } catch (error) {
+    console.error(
+      `Error al actualizar subcategorías para nivel ${nivel}:`,
+      error
+    );
+  }
+};
+
+const limpiarSubcategoriasInferiores = (nivel) => {
+  for (let i = nivel; i < producto.subcategoriasSeleccionadas.length; i++) {
+    producto.subcategoriasSeleccionadas[i] = "";
+    producto.subcategoriasDisponibles[i] = [];
+  }
+};
+
+const cargarValoresAtributos = async (atributoId, index) => {
+  try {
+    const response = await axios.get(
+      `/productos/valores_atributos/traer/${atributoId}`
+    );
+    producto.atributos[index].valoresDisponibles = response.data || [];
+    producto.atributos[index].valor = "";
+  } catch (error) {
+    console.error(`Error al cargar valores del atributo ${atributoId}:`, error);
+  }
+};
+
 const agregarAtributo = () => {
-  producto.atributos.push({ nombre: "", valor: "" });
+  producto.atributos.push({ nombre: "", valor: "", valoresDisponibles: [] });
 };
 
 const eliminarAtributo = (index) => {
@@ -58,208 +115,186 @@ const registrarProducto = () => {
             <h3 class="text-lg leading-6 font-medium text-gray-900 mb-4">
               Registrar Producto
             </h3>
-
-            <form @submit.prevent="registrarProducto">
-              <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
-                <div>
-                  <label
-                    for="nombre"
-                    class="block text-sm font-medium text-gray-700"
-                  >
-                    Nombre:
-                  </label>
-                  <input
-                    id="nombre"
-                    type="text"
-                    v-model="producto.nombre"
-                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  />
-                </div>
-
-                <div>
-                  <label
-                    for="codigo"
-                    class="block text-sm font-medium text-gray-700"
-                  >
-                    Código del producto:
-                  </label>
-                  <input
-                    id="codigo"
-                    type="text"
-                    v-model="producto.codigo"
-                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  />
-                </div>
-              </div>
-
-              <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
-                <div>
-                  <label
-                    for="categoria"
-                    class="block text-sm font-medium text-gray-700"
-                  >
-                    Categoría Principal:
-                  </label>
-                  <select
-                    id="categoria"
-                    v-model="producto.categoria"
-                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  >
-                    <option value="">Seleccione una categoría</option>
-                    <option value="cat1">Categoría 1</option>
-                    <option value="cat2">Categoría 2</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    for="subcategoria1"
-                    class="block text-sm font-medium text-gray-700"
-                  >
-                    Categoría 1:
-                  </label>
-                  <select
-                    id="subcategoria1"
-                    v-model="producto.subcategoria_1"
-                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  >
-                    <option value="">Seleccione una subcategoría</option>
-                    <option value="tipo1">Tipo 1</option>
-                    <option value="tipo2">Tipo 2</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    for="subcategoria2"
-                    class="block text-sm font-medium text-gray-700"
-                  >
-                    Categoría 2:
-                  </label>
-                  <select
-                    id="subcategoria2"
-                    v-model="producto.subcategoria_2"
-                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  >
-                    <option value="">Seleccione una subcategoría</option>
-                    <option value="tipo1">Tipo 1</option>
-                    <option value="tipo2">Tipo 2</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    for="subcategoria3"
-                    class="block text-sm font-medium text-gray-700"
-                  >
-                    Categoría 3:
-                  </label>
-                  <select
-                    id="subcategoria3"
-                    v-model="producto.subcategoria_2"
-                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  >
-                    <option value="">Seleccione una subcategoría</option>
-                    <option value="tipo1">Tipo 1</option>
-                    <option value="tipo2">Tipo 2</option>
-                  </select>
-                </div>
-
-                <div>
-                  <label
-                    for="subcategoria4"
-                    class="block text-sm font-medium text-gray-700"
-                  >
-                    Categoría 4:
-                  </label>
-                  <select
-                    id="subcategoria4"
-                    v-model="producto.subcategoria_2"
-                    class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  >
-                    <option value="">Seleccione una subcategoría</option>
-                    <option value="tipo1">Tipo 1</option>
-                    <option value="tipo2">Tipo 2</option>
-                  </select>
-                </div>
-              </div>
-
-              <!-- Precio Venta -->
-              <div class="mt-4">
-                <label
-                  for="precioVenta"
-                  class="block text-sm font-medium text-gray-700"
-                >
-                  Precio Venta:
-                </label>
-                <input
-                  id="precioVenta"
-                  type="number"
-                  v-model="producto.precioVenta"
-                  class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                />
-              </div>
-
-              <!-- Atributos -->
-              <div class="mt-6">
-                <h4 class="text-md font-medium text-gray-700 mb-2">
-                  Atributos del Producto
-                </h4>
-                <div
-                  v-for="(atributo, index) in producto.atributos"
-                  :key="index"
-                  class="flex gap-4 mb-2"
-                >
-                  <input
-                    type="text"
-                    v-model="atributo.nombre"
-                    placeholder="Nombre del atributo"
-                    class="block w-1/2 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  />
-                  <input
-                    type="text"
-                    v-model="atributo.valor"
-                    placeholder="Valor del atributo"
-                    class="block w-1/2 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-                  />
-                  <button
-                    type="button"
-                    @click="eliminarAtributo(index)"
-                    class="text-red-500 font-medium hover:underline"
-                  >
-                    Eliminar
-                  </button>
-                </div>
-                <button
-                  type="button"
-                  @click="agregarAtributo"
-                  class="mt-2 text-blue-500 font-medium hover:underline"
-                >
-                  + Nuevo Atributo
-                </button>
-              </div>
-
-              <!-- Botones -->
-              <div class="mt-6 flex justify-end">
-                <button
-                  type="button"
-                  @click="cerrar"
-                  class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
-                >
-                  Cancelar
-                </button>
-                <button
-                  type="submit"
-                  class="ml-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
-                >
-                  Registrar
-                </button>
-              </div>
-            </form>
           </div>
         </div>
+        <form @submit.prevent="registrarProducto">
+          <div class="grid grid-cols-1 md:grid-cols-2 gap-4">
+            <div>
+              <label
+                for="nombre"
+                class="block text-sm font-medium text-gray-700"
+              >
+                Nombre:
+              </label>
+              <input
+                id="nombre"
+                type="text"
+                v-model="producto.nombre"
+                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              />
+            </div>
+            <div>
+              <label
+                for="codigo"
+                class="block text-sm font-medium text-gray-700"
+              >
+                Código del producto:
+              </label>
+              <input
+                id="codigo"
+                type="text"
+                v-model="producto.codigo"
+                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              />
+            </div>
+          </div>
+
+          <div class="grid grid-cols-1 md:grid-cols-5 gap-4 mt-4">
+            <div>
+              <label
+                for="categoriaPrincipal"
+                class="block text-sm font-medium text-gray-700"
+              >
+                Categoría Principal:
+              </label>
+              <select
+                id="categoriaPrincipal"
+                v-model="producto.categoriaPrincipal"
+                @change="
+                  actualizarSubcategorias(1, producto.categoriaPrincipal)
+                "
+                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              >
+                <option value="">Seleccione una categoría</option>
+                <option
+                  v-for="categoria in categorias"
+                  :key="categoria.id"
+                  :value="categoria.id"
+                >
+                  {{ categoria.name }}
+                </option>
+              </select>
+            </div>
+
+            <div v-for="nivel in 4" :key="`subcategoria_${nivel}`">
+              <label
+                :for="`subcategoria_${nivel}`"
+                class="block text-sm font-medium text-gray-700"
+              >
+                Subcategoría {{ nivel }}:
+              </label>
+              <select
+                :id="`subcategoria_${nivel}`"
+                v-model="producto.subcategoriasSeleccionadas[nivel - 1]"
+                @change="
+                  actualizarSubcategorias(
+                    nivel + 1,
+                    producto.subcategoriasSeleccionadas[nivel - 1]
+                  )
+                "
+                class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              >
+                <option value="">Seleccione una subcategoría</option>
+                <option
+                  v-for="subcategoria in producto.subcategoriasDisponibles[
+                    nivel - 1
+                  ]"
+                  :key="subcategoria.id"
+                  :value="subcategoria.id"
+                >
+                  {{ subcategoria.name }}
+                </option>
+              </select>
+            </div>
+          </div>
+
+          <div class="mt-4">
+            <label
+              for="precioVenta"
+              class="block text-sm font-medium text-gray-700"
+            >
+              Precio Venta:
+            </label>
+            <input
+              id="precioVenta"
+              type="number"
+              v-model="producto.precioVenta"
+              class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+            />
+          </div>
+
+          <div class="mt-6">
+            <h4 class="text-md font-medium text-gray-700 mb-2">
+              Atributos del Producto
+            </h4>
+            <div
+              v-for="(atributo, index) in producto.atributos"
+              :key="index"
+              class="flex gap-4 mb-2"
+            >
+              <select
+                v-model="atributo.nombre"
+                @change="cargarValoresAtributos(atributo.nombre, index)"
+                class="block w-1/2 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              >
+                <option value="">Seleccione un atributo</option>
+                <option
+                  v-for="attr in atributos"
+                  :key="attr.id"
+                  :value="attr.id"
+                >
+                  {{ attr.name }}
+                </option>
+              </select>
+
+              <select
+                v-model="atributo.valor"
+                class="block w-1/2 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              >
+                <option value="">Seleccione un valor</option>
+                <option
+                  v-for="valor in atributo.valoresDisponibles"
+                  :key="valor.id"
+                  :value="valor.id"
+                >
+                  {{ valor.name }}
+                </option>
+              </select>
+
+              <button
+                type="button"
+                @click="eliminarAtributo(index)"
+                class="text-red-500 font-medium hover:underline"
+              >
+                Eliminar
+              </button>
+            </div>
+            <button
+              type="button"
+              @click="agregarAtributo"
+              class="mt-2 text-blue-500 font-medium hover:underline"
+            >
+              + Agregar Atributo
+            </button>
+          </div>
+
+          <div class="mt-6 flex justify-end">
+            <button
+              type="button"
+              @click="cerrar"
+              class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Cancelar
+            </button>
+            <button
+              type="submit"
+              class="ml-2 bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+            >
+              Registrar
+            </button>
+          </div>
+        </form>
       </div>
     </div>
   </div>
 </template>
-

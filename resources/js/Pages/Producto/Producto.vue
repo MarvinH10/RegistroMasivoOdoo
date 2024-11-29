@@ -3,15 +3,32 @@ import AppLayout from "@/Layouts/AppLayout.vue";
 import TablaProducto from "@/Components/TablaProducto.vue";
 import ModalRegistrar from "@/Components/ModalRegistrar.vue";
 import axios from "axios";
-import { ref, onMounted } from "vue";
+import { ref, onMounted, reactive } from "vue";
 
 const productos = ref([]);
 const categorias = ref([]);
-const subcategorias = ref([]);
+const subcategorias = reactive({
+  1: [],
+  2: [],
+  3: [],
+  4: [],
+});
 const atributos = ref([]);
 const valoresAtributos = ref([]);
 const cargando = ref(false);
 const mostrarModal = ref(false);
+
+const cargarProductos = async () => {
+  try {
+    cargando.value = true;
+    const response = await axios.get("/productos/traer");
+    productos.value = response.data;
+  } catch (error) {
+    console.error("Error al cargar productos:", error);
+  } finally {
+    cargando.value = false;
+  }
+};
 
 const cargarCategorias = async () => {
   try {
@@ -22,34 +39,12 @@ const cargarCategorias = async () => {
   }
 };
 
-const cargarSubcategorias = async (categoriaId) => {
-  try {
-    const response = await axios.get(
-      `/productos/subcategorias/traer/${categoriaId}`
-    );
-    subcategorias.value = response.data;
-  } catch (error) {
-    console.error("Error al cargar subcategorías:", error);
-  }
-};
-
 const cargarAtributos = async () => {
   try {
     const response = await axios.get("/productos/atributos/traer");
     atributos.value = response.data;
   } catch (error) {
     console.error("Error al cargar atributos:", error);
-  }
-};
-
-const cargarValoresAtributos = async (atributoId) => {
-  try {
-    const response = await axios.get(
-      `/productos/valores_atributos/traer/${atributoId}`
-    );
-    valoresAtributos.value = response.data;
-  } catch (error) {
-    console.error("Error al cargar valores de atributos:", error);
   }
 };
 
@@ -168,6 +163,14 @@ const eliminarProducto = async (id) => {
         </div>
       </div>
     </div>
-    <ModalRegistrar :mostrar="mostrarModal" :cerrar="cerrarModal" />
+    <ModalRegistrar
+      :mostrar="mostrarModal"
+      :cerrar="cerrarModal"
+      :categorias="categorias"
+      :subcategorias="subcategorias"
+      :atributos="atributos"
+      :valoresAtributos="valoresAtributos"
+      @crearProducto="cargarProductos"
+    />
   </AppLayout>
 </template>
