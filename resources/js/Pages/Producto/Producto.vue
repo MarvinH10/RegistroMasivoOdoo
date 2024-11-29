@@ -1,6 +1,7 @@
 <script setup>
 import AppLayout from "@/Layouts/AppLayout.vue";
 import TablaProducto from "@/Components/TablaProducto.vue";
+import ModalRegistrar from "@/Components/ModalRegistrar.vue";
 import axios from "axios";
 import { ref, onMounted } from "vue";
 
@@ -10,6 +11,7 @@ const subcategorias = ref([]);
 const atributos = ref([]);
 const valoresAtributos = ref([]);
 const cargando = ref(false);
+const mostrarModal = ref(false);
 
 const cargarCategorias = async () => {
   try {
@@ -79,7 +81,11 @@ const traerNombresValoresAtributos = (id) => {
 };
 
 const abrirModalCrearProducto = () => {
-  console.log("Abrir modal para crear producto");
+  mostrarModal.value = true;
+};
+
+const cerrarModal = () => {
+  mostrarModal.value = false;
 };
 
 const duplicarProducto = async (producto) => {
@@ -147,7 +153,21 @@ const eliminarProducto = async (id) => {
             No hay productos por mostrar
           </p>
         </div>
+        <div class="flex justify-end mt-4">
+          <button
+            v-if="!cargando && !productos.length"
+            @click="registrarTodosLosProductos"
+            class="bg-blue-500 hover:bg-blue-700 text-white font-bold py-2 px-4 rounded"
+          >
+            <i class="fas fa-save"></i> Crear Productos en Odoo
+          </button>
+
+          <div v-else class="text-center text-blue-500 font-bold">
+            <i class="fas fa-spinner fa-spin mr-2"></i> Subiendo productos...
+          </div>
+        </div>
       </div>
     </div>
+    <ModalRegistrar :mostrar="mostrarModal" :cerrar="cerrarModal" />
   </AppLayout>
 </template>
