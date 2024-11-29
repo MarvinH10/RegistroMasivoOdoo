@@ -3,6 +3,10 @@
 namespace App\Http\Controllers;
 
 use App\Services\OdooService;
+use Exception;
+use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Log;
+use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
 
 class ProductoController extends Controller
@@ -14,10 +18,127 @@ class ProductoController extends Controller
         $this->ServicioOdoo = $ServicioOdoo;
     }
 
+    private function readProductsFromFile()
+    {
+        if (Storage::exists('productos.json')) {
+            return json_decode(Storage::get('productos.json'), true);
+        }
+        return [];
+    }
+
+    private function writeProductsToFile(array $productos)
+    {
+        Storage::put('productos.json', json_encode($productos));
+    }
+
     /*INICIO FUNCIONALIDADES EN VISTA*/
     public function index()
     {
         return Inertia::render('Producto/Producto');
+    }
+
+    public function almacenar(Request $request)
+    {
+        try {
+            $newProduct = $request->validate([
+                'name' => 'required|string|max:255',
+                'default_code' => 'nullable|string|max:255',
+                'categ_id' => 'required|integer',
+                'subcateg1_id' => 'nullable|integer',
+                'subcateg2_id' => 'nullable|integer',
+                'subcateg3_id' => 'nullable|integer',
+                'subcateg4_id' => 'nullable|integer',
+                'list_price' => 'nullable|numeric',
+                'attributes' => 'nullable|array',
+                'attributes.*.attribute_id' => 'required|integer',
+                'attributes.*.value_ids' => 'required|array',
+                'attributes.*.value_ids.*' => 'required|integer',
+                'attributes.*.extra_references' => 'nullable|array',
+                'attributes.*.extra_references.*' => 'nullable|string',
+                'attributes.*.extra_prices' => 'nullable|array',
+                'attributes.*.extra_prices.*' => 'nullable|numeric',
+            ]);
+
+            $newProduct['id'] = !empty($productos) ? end($productos)['id'] + 1 : 1;
+
+            if (!empty($newProduct['attributes'])) {
+                $processedAttributes = [];
+                $attributesWithRefs = [];
+
+                foreach ($newProduct['attributes'] as $attribute) {
+                    $hasRefs = false;
+                    if (!empty($attribute['extra_references'])) {
+                        foreach ($attribute['extra_references'] as $ref) {
+                            if (!empty($ref)) {
+                                $hasRefs = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    $processedAttribute = [
+                        'attribute_id' => $attribute['attribute_id'],
+                        'value_ids' => $attribute['value_ids'] ?? [],
+                        'extra_references' => $attribute['extra_references'] ?? [],
+                        'extra_prices' => $attribute['extra_prices'] ?? [],
+                    ];
+
+                    if ($hasRefs) {
+                        $attributesWithRefs[] = $processedAttribute;
+                    } else {
+                        $processedAttributes[] = $processedAttribute;
+                    }
+                }
+
+                $newProduct['attributes'] = array_merge($processedAttributes, $attributesWithRefs);
+            }
+
+            $productos[] = $newProduct;
+            $this->writeProductsToFile($productos);
+
+            return response()->json($newProduct);
+        } catch (Exception $e) {
+            Log::error('Error almacenando producto:', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['error' => 'Error almacenando producto: ' . $e->getMessage()], 500);
+        }
+    }
+
+    public function actualizar(Request $request, $id)
+    {
+        try {
+            $productos = $this->readProductsFromFile();
+
+            $productoIndex = array_search($id, array_column($productos, 'id'));
+
+            if ($productoIndex === false) {
+                return response()->json(['error' => 'Producto no encontrado'], 404);
+            }
+
+            $productos[$productoIndex] = array_merge($productos[$productoIndex], $request->all());
+
+            $this->writeProductsToFile($productos);
+
+            return response()->json($productos[$productoIndex]);
+        } catch (Exception $e) {
+            Log::error('Error actualizando producto: ' . $e->getMessage());
+
+            return response()->json(['error' => 'Error actualizando producto'], 500);
+        }
+    }
+
+    public function quitar($id)
+    {
+        try {
+            $productos = $this->readProductsFromFile();
+            $productos = array_filter($productos, function ($producto) use ($id) {
+                return $producto['id'] != $id;
+            });
+            $this->writeProductsToFile(array_values($productos));
+            return response()->json(['message' => 'Producto eliminado']);
+        } catch (Exception $e) {
+            Log::error('Error quitando producto: ' . $e->getMessage());
+            return response()->json(['error' => 'Error quitando producto'], 500);
+        }
     }
     /*FINAL FUNCIONALIDADES EN VISTA*/
 

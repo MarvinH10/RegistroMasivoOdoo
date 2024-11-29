@@ -1,7 +1,7 @@
 <script setup>
 import AppLayout from "@/Layouts/AppLayout.vue";
-import TablaProducto from "@/Components/TablaProducto.vue";
-import ModalRegistrar from "@/Components/ModalRegistrar.vue";
+import TablaProducto from "@/Components/Producto/TablaProducto.vue";
+import ModalRegistrar from "@/Components/Producto/ModalRegistrar.vue";
 import axios from "axios";
 import { ref, onMounted, reactive } from "vue";
 
@@ -171,6 +171,7 @@ const eliminarProducto = async (id) => {
       :atributos="atributos"
       :valoresAtributos="valoresAtributos"
       @crearProducto="cargarProductos"
+      :traerNombresValoresAtributos="traerNombresValoresAtributos"
     />
   </AppLayout>
 </template>

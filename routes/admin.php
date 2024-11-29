@@ -7,6 +7,9 @@ Route::middleware(['auth'])->group(function () {
 
     Route::controller(ProductoController::class)->group(function () {
         Route::get('/productos', 'index')->name('Producto');
+        Route::post('/productos/almacenar', 'almacenar');
+        Route::put('/productos/actualizar/{id}', 'actualizar');
+        Route::delete('/productos/eliminar/{id}', 'quitar');
         Route::get('/productos/favoritos/traer', 'traerProductosFavoritos');
         Route::get('/productos/categorias/traer', 'traerCategorias');
         Route::get('/productos/subcategorias/traer/{id}', 'traerSubcategorias');

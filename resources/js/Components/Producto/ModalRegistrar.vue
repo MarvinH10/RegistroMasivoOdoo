@@ -1,5 +1,5 @@
 <script setup>
-import { reactive } from "vue";
+import { reactive, ref, onMounted, onBeforeUnmount, watch } from "vue";
 import axios from "axios";
 
 defineProps({
@@ -23,6 +23,10 @@ defineProps({
     type: Array,
     required: true,
   },
+  traerNombresValoresAtributos: {
+    type: Function,
+    required: true,
+  },
 });
 
 defineEmits(["close", "save"]);
@@ -36,6 +40,8 @@ const producto = reactive({
   precioVenta: 0,
   atributos: [],
 });
+
+const selectRefs = ref([]);
 
 const cargarSubcategorias = async (categoriaId, nivel) => {
   try {
@@ -76,15 +82,27 @@ const cargarValoresAtributos = async (atributoId, index) => {
     const response = await axios.get(
       `/productos/valores_atributos/traer/${atributoId}`
     );
-    producto.atributos[index].valoresDisponibles = response.data || [];
-    producto.atributos[index].valor = "";
+    const valores = response.data || [];
+    producto.atributos[index].valoresDisponibles = valores;
+    producto.atributos[index].valor = [];
+    producto.atributos[index].extraReferences = [];
+    producto.atributos[index].extraPrices = [];
+    producto.atributos[index].valoresNombres = [];
+    initSelect2(index);
   } catch (error) {
     console.error(`Error al cargar valores del atributo ${atributoId}:`, error);
   }
 };
 
 const agregarAtributo = () => {
-  producto.atributos.push({ nombre: "", valor: "", valoresDisponibles: [] });
+  producto.atributos.push({
+    nombre: "",
+    valor: [],
+    valoresDisponibles: [],
+    extraReferences: [],
+    extraPrices: [],
+    valoresNombres: [],
+  });
 };
 
 const eliminarAtributo = (index) => {
@@ -95,6 +113,66 @@ const registrarProducto = () => {
   console.log("Datos del producto registrado:", producto);
   emit("save", producto);
 };
+
+const initSelect2 = (index) => {
+  setTimeout(() => {
+    $(selectRefs.value[index])
+      .select2({
+        placeholder: "Seleccione valores",
+        allowClear: true,
+      })
+      .off("change")
+      .on("change", function () {
+        const valoresSeleccionados = $(this).val();
+        producto.atributos[index].valor = valoresSeleccionados;
+
+        producto.atributos[index].valoresNombres = valoresSeleccionados.map(
+          (id) => {
+            const valor = producto.atributos[index].valoresDisponibles.find(
+              (item) => item.id == id
+            );
+            return valor ? valor.name : "Sin valor";
+          }
+        );
+
+        producto.atributos[index].extraReferences = Array(
+          valoresSeleccionados.length
+        ).fill("");
+        producto.atributos[index].extraPrices = Array(
+          valoresSeleccionados.length
+        ).fill("");
+      });
+  });
+};
+
+const actualizarSelectAncho = () => {
+  selectRefs.value.forEach((selectElement) => {
+    if (selectElement && $(selectElement).data("select2")) {
+      $(selectElement).select2("destroy");
+      $(selectElement).select2({ width: "100%" });
+    }
+  });
+};
+
+const manejarResize = () => {
+  actualizarSelectAncho();
+};
+
+onMounted(() => {
+  window.addEventListener("resize", manejarResize);
+  actualizarSelectAncho();
+  watch(
+    () => producto.atributos,
+    (newAtributos) => {
+      newAtributos.forEach((_, index) => initSelect2(index));
+    },
+    { deep: true }
+  );
+});
+
+onBeforeUnmount(() => {
+  window.removeEventListener("resize", manejarResize);
+});
 </script>
 
 <template>
@@ -224,58 +302,121 @@ const registrarProducto = () => {
           </div>
 
           <div class="mt-6">
-            <h4 class="text-md font-medium text-gray-700 mb-2">
+            <h4 class="text-md font-medium text-gray-700 mb-4">
               Atributos del Producto
             </h4>
+
             <div
               v-for="(atributo, index) in producto.atributos"
               :key="index"
-              class="flex gap-4 mb-2"
+              class="border-b pb-4 mb-4"
             >
-              <select
-                v-model="atributo.nombre"
-                @change="cargarValoresAtributos(atributo.nombre, index)"
-                class="block w-1/2 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+              <div
+                class="grid grid-cols-1 md:grid-cols-10 gap-x-6 gap-y-4 items-start"
               >
-                <option value="">Seleccione un atributo</option>
-                <option
-                  v-for="attr in atributos"
-                  :key="attr.id"
-                  :value="attr.id"
-                >
-                  {{ attr.name }}
-                </option>
-              </select>
+                <div class="col-span-1 md:col-span-2">
+                  <label
+                    class="block text-sm font-medium text-gray-700"
+                    :for="'atributo_' + index"
+                  >
+                    Atributo:
+                  </label>
+                  <select
+                    v-model="atributo.nombre"
+                    @change="cargarValoresAtributos(atributo.nombre, index)"
+                    class="w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
+                  >
+                    <option value="">Seleccione un atributo</option>
+                    <option
+                      v-for="attr in atributos"
+                      :key="attr.id"
+                      :value="attr.id"
+                    >
+                      {{ attr.name }}
+                    </option>
+                  </select>
+                </div>
 
-              <select
-                v-model="atributo.valor"
-                class="block w-1/2 border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
-              >
-                <option value="">Seleccione un valor</option>
-                <option
-                  v-for="valor in atributo.valoresDisponibles"
-                  :key="valor.id"
-                  :value="valor.id"
-                >
-                  {{ valor.name }}
-                </option>
-              </select>
+                <div class="col-span-1 md:col-span-3">
+                  <label
+                    class="block text-sm font-medium text-gray-700"
+                    :for="'atributo_valores_' + index"
+                  >
+                    Valores de Atributo:
+                  </label>
+                  <select
+                    ref="selectRefs"
+                    :id="'atributo_valores_' + index"
+                    class="w-full border-gray-300 rounded-md shadow-sm"
+                    multiple
+                  >
+                    <option
+                      v-for="valor in atributo.valoresDisponibles"
+                      :key="valor.id"
+                      :value="valor.id"
+                    >
+                      {{ valor.name }}
+                    </option>
+                  </select>
+                </div>
 
+                <div class="col-span-1 md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700">
+                    Referencia Interna:
+                  </label>
+                  <div
+                    v-for="(valor, i) in atributo.valor"
+                    :key="'ref_' + i"
+                    class="mb-2"
+                  >
+                    <input
+                      type="text"
+                      v-model="atributo.extraReferences[i]"
+                      :placeholder="`Referencia para ${atributo.valoresNombres[i]}`"
+                      class="w-full border-gray-300 rounded-md shadow-sm py-2 px-3"
+                    />
+                  </div>
+                </div>
+
+                <div class="col-span-1 md:col-span-2">
+                  <label class="block text-sm font-medium text-gray-700">
+                    Precio Extra:
+                  </label>
+                  <div
+                    v-for="(valor, i) in atributo.valor"
+                    :key="'price_' + i"
+                    class="mb-2"
+                  >
+                    <input
+                      type="number"
+                      v-model="atributo.extraPrices[i]"
+                      :placeholder="`Precio para ${atributo.valoresNombres[i]}`"
+                      class="w-full border-gray-300 rounded-md shadow-sm py-2 px-3"
+                    />
+                  </div>
+                </div>
+
+                <div class="col-span-1 text-left mt-4">
+                  <button
+                    type="button"
+                    @click="eliminarAtributo(index)"
+                    class="bg-red-500 hover:bg-red-600 text-white font-medium px-3 py-1 rounded"
+                  >
+                    <i class="fas fa-trash"></i>
+                  </button>
+                </div>
+              </div>
+            </div>
+
+            <div class="mt-4">
               <button
                 type="button"
-                @click="eliminarAtributo(index)"
-                class="text-red-500 font-medium hover:underline"
+                @click="agregarAtributo"
+                class="bg-gray-500 hover:bg-gray-600 text-white font-medium px-4 py-2 rounded"
               >
-                Eliminar
+                + Nuevo Atributo
               </button>
             </div>
-            <button
-              type="button"
-              @click="agregarAtributo"
-              class="mt-2 text-blue-500 font-medium hover:underline"
-            >
-              + Agregar Atributo
-            </button>
           </div>
 
           <div class="mt-6 flex justify-end">
