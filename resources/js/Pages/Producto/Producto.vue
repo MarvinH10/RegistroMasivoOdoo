@@ -52,6 +52,10 @@ onMounted(async () => {
   await Promise.all([cargarCategorias(), cargarAtributos()]);
 });
 
+const agregarProductoALista = (nuevoProducto) => {
+  productos.value.push(nuevoProducto);
+};
+
 const traerNombresCategorias = (producto) => {
   const categoria = categorias.value.find(
     (cat) => cat.id === producto.category_id
@@ -169,9 +173,7 @@ const eliminarProducto = async (id) => {
       :categorias="categorias"
       :subcategorias="subcategorias"
       :atributos="atributos"
-      :valoresAtributos="valoresAtributos"
-      @crearProducto="cargarProductos"
-      :traerNombresValoresAtributos="traerNombresValoresAtributos"
+      @save="agregarProductoALista"
     />
   </AppLayout>
 </template>

@@ -19,17 +19,9 @@ defineProps({
     type: Array,
     required: true,
   },
-  valoresAtributos: {
-    type: Array,
-    required: true,
-  },
-  traerNombresValoresAtributos: {
-    type: Function,
-    required: true,
-  },
 });
 
-defineEmits(["close", "save"]);
+const emit = defineEmits(["close", "save"]);
 
 const producto = reactive({
   nombre: "",
@@ -109,11 +101,6 @@ const eliminarAtributo = (index) => {
   producto.atributos.splice(index, 1);
 };
 
-const registrarProducto = () => {
-  console.log("Datos del producto registrado:", producto);
-  emit("save", producto);
-};
-
 const initSelect2 = (index) => {
   setTimeout(() => {
     $(selectRefs.value[index])
@@ -152,6 +139,34 @@ const actualizarSelectAncho = () => {
       $(selectElement).select2({ width: "100%" });
     }
   });
+};
+
+const registrarProducto = async () => {
+  try {
+    const response = await axios.post("/productos/almacenar", {
+      name: producto.nombre,
+      default_code: producto.codigo,
+      categ_id: producto.categoriaPrincipal,
+      subcateg1_id: producto.subcategoriasSeleccionadas[0],
+      subcateg2_id: producto.subcategoriasSeleccionadas[1],
+      subcateg3_id: producto.subcategoriasSeleccionadas[2],
+      subcateg4_id: producto.subcategoriasSeleccionadas[3],
+      list_price: producto.precioVenta,
+      attributes: producto.atributos.map((attr) => ({
+        attribute_id: attr.nombre,
+        value_ids: attr.valor.map((v) => parseInt(v)),
+        extra_references: attr.extraReferences,
+        extra_prices: attr.extraPrices,
+      })),
+    });
+
+    emit("save", response.data);
+    emit('close');
+    // alert("Producto almacenado a la lista exitosamente");
+  } catch (error) {
+    console.error("Error registrando producto:", error);
+    alert("Hubo un problema al almacenar el producto en la lista. Inténtalo nuevamente.");
+  }
 };
 
 const manejarResize = () => {
@@ -366,7 +381,7 @@ onBeforeUnmount(() => {
                   </label>
                   <div
                     v-for="(valor, i) in atributo.valor"
-                    :key="'ref_' + i"
+                    :key="'ref_' + valor"
                     class="mb-2"
                   >
                     <input
@@ -384,7 +399,7 @@ onBeforeUnmount(() => {
                   </label>
                   <div
                     v-for="(valor, i) in atributo.valor"
-                    :key="'price_' + i"
+                    :key="'price_' + valor"
                     class="mb-2"
                   >
                     <input
