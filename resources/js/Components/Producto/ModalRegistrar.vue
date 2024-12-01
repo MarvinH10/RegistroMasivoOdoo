@@ -7,10 +7,6 @@ defineProps({
     type: Boolean,
     required: true,
   },
-  cerrar: {
-    type: Function,
-    required: true,
-  },
   categorias: {
     type: Array,
     required: true,
@@ -143,7 +139,12 @@ const actualizarSelectAncho = () => {
 
 const registrarProducto = async () => {
   try {
-    const response = await axios.post("/productos/almacenar", {
+    if (!producto.atributos.length) {
+      alert("Debe seleccionar al menos un atributo.");
+      return;
+    }
+
+    const nuevoProducto = {
       name: producto.nombre,
       default_code: producto.codigo,
       categ_id: producto.categoriaPrincipal,
@@ -155,17 +156,17 @@ const registrarProducto = async () => {
       attributes: producto.atributos.map((attr) => ({
         attribute_id: attr.nombre,
         value_ids: attr.valor.map((v) => parseInt(v)),
+        value_names: attr.valoresNombres,
         extra_references: attr.extraReferences,
         extra_prices: attr.extraPrices,
       })),
-    });
+    };
 
-    emit("save", response.data);
-    emit('close');
-    // alert("Producto almacenado a la lista exitosamente");
+    emit("save", nuevoProducto);
+    emit("close");
   } catch (error) {
     console.error("Error registrando producto:", error);
-    alert("Hubo un problema al almacenar el producto en la lista. Inténtalo nuevamente.");
+    alert("Hubo un problema al registrar el producto. Inténtalo nuevamente.");
   }
 };
 
@@ -437,7 +438,7 @@ onBeforeUnmount(() => {
           <div class="mt-6 flex justify-end">
             <button
               type="button"
-              @click="cerrar"
+              @click="emit('close')"
               class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
             >
               Cancelar
