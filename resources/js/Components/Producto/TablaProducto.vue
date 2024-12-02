@@ -4,10 +4,6 @@ defineProps({
     type: Array,
     required: true,
   },
-  traerNombresCategorias: {
-    type: Function,
-    required: true,
-  },
   traerNombresAtributos: {
     type: Function,
     required: true,
@@ -73,7 +69,7 @@ const getColorClass = () => {
         <td class="px-6 py-4 border-b">{{ producto.name }}</td>
         <td class="px-6 py-4 border-b">{{ producto.default_code }}</td>
         <td class="px-6 py-4 border-b">
-          {{ traerNombresCategorias(producto) }}
+          {{ producto.categoriasConcatenadas }}
         </td>
         <td class="px-6 py-4 border-b">S/. {{ producto.list_price }}</td>
         <td class="px-6 py-4 border-b">

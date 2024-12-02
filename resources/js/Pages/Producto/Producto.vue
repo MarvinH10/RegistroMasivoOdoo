@@ -123,19 +123,6 @@ const registrarTodosLosProductos = async () => {
   }
 };
 
-const traerNombresCategorias = (producto) => {
-  const categoria = categorias.value.find(
-    (cat) => cat.id === producto.category_id
-  );
-  return categoria ? categoria.name : "Sin categoría";
-};
-
-const traerSubcategoriasDeCategoria = (categoriaId) => {
-  return subcategorias.value.filter(
-    (subcat) => subcat.parent_id === categoriaId
-  );
-};
-
 const traerNombresAtributos = (id) => {
   const atributo = atributos.value.find((attr) => attr.id === id);
   return atributo ? atributo.name : "Desconocido";
@@ -204,7 +191,6 @@ const eliminarProducto = async (id) => {
           <div v-else class="overflow-x-auto">
             <TablaProducto
               :productos="productos"
-              :traerNombresCategorias="traerNombresCategorias"
               :traerNombresAtributos="traerNombresAtributos"
               :traerNombresValoresAtributos="traerNombresValoresAtributos"
               @duplicar="duplicarProducto"

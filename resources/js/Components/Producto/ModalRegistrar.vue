@@ -1,208 +1,249 @@
-<script setup>
+<script>
 import { reactive, ref, onMounted, onBeforeUnmount, watch } from "vue";
 import axios from "axios";
 
-defineProps({
-  mostrar: {
-    type: Boolean,
-    required: true,
+export default {
+  props: {
+    mostrar: {
+      type: Boolean,
+      required: true,
+    },
+    categorias: {
+      type: Array,
+      required: true,
+    },
+    atributos: {
+      type: Array,
+      required: true,
+    },
   },
-  categorias: {
-    type: Array,
-    required: true,
-  },
-  atributos: {
-    type: Array,
-    required: true,
-  },
-});
+  emits: ["close", "save"],
+  setup(props, { emit }) {
+    const producto = reactive({
+      nombre: "",
+      codigo: "",
+      categoriaPrincipal: "",
+      subcategoriasSeleccionadas: ["", "", "", ""],
+      subcategoriasDisponibles: [[], [], [], []],
+      precioVenta: 0,
+      atributos: [],
+    });
 
-const emit = defineEmits(["close", "save"]);
+    const selectRefs = ref([]);
 
-const producto = reactive({
-  nombre: "",
-  codigo: "",
-  categoriaPrincipal: "",
-  subcategoriasSeleccionadas: ["", "", "", ""],
-  subcategoriasDisponibles: [[], [], [], []],
-  precioVenta: 0,
-  atributos: [],
-});
-
-const selectRefs = ref([]);
-
-const cargarSubcategorias = async (categoriaId, nivel) => {
-  try {
-    if (categoriaId) {
-      const response = await axios.get(
-        `/productos/subcategorias/traer/${categoriaId}`
-      );
-      producto.subcategoriasDisponibles[nivel - 1] = response.data;
-    } else {
-      producto.subcategoriasDisponibles[nivel - 1] = [];
-    }
-    limpiarSubcategoriasInferiores(nivel);
-  } catch (error) {
-    console.error(`Error al cargar subcategorías para nivel ${nivel}:`, error);
-  }
-};
-
-const actualizarSubcategorias = async (nivel, categoriaId) => {
-  try {
-    await cargarSubcategorias(categoriaId, nivel);
-  } catch (error) {
-    console.error(
-      `Error al actualizar subcategorías para nivel ${nivel}:`,
-      error
-    );
-  }
-};
-
-const limpiarSubcategoriasInferiores = (nivel) => {
-  for (let i = nivel; i < producto.subcategoriasSeleccionadas.length; i++) {
-    producto.subcategoriasSeleccionadas[i] = "";
-    producto.subcategoriasDisponibles[i] = [];
-  }
-};
-
-const cargarValoresAtributos = async (atributoId, index) => {
-  try {
-    const response = await axios.get(
-      `/productos/valores_atributos/traer/${atributoId}`
-    );
-    const valores = response.data || [];
-    producto.atributos[index].valoresDisponibles = valores;
-    producto.atributos[index].valor = [];
-    producto.atributos[index].extraReferences = [];
-    producto.atributos[index].extraPrices = [];
-    producto.atributos[index].valoresNombres = [];
-    initSelect2(index);
-  } catch (error) {
-    console.error(`Error al cargar valores del atributo ${atributoId}:`, error);
-  }
-};
-
-const agregarAtributo = () => {
-  producto.atributos.push({
-    nombre: "",
-    valor: [],
-    valoresDisponibles: [],
-    extraReferences: [],
-    extraPrices: [],
-    valoresNombres: [],
-  });
-};
-
-const eliminarAtributo = (index) => {
-  producto.atributos.splice(index, 1);
-};
-
-const initSelect2 = (index) => {
-  setTimeout(() => {
-    $(selectRefs.value[index])
-      .select2({
-        placeholder: "Seleccione valores",
-        allowClear: true,
-      })
-      .off("change")
-      .on("change", function () {
-        const valoresSeleccionados = $(this).val();
-        producto.atributos[index].valor = valoresSeleccionados;
-
-        producto.atributos[index].valoresNombres = valoresSeleccionados.map(
-          (id) => {
-            const valor = producto.atributos[index].valoresDisponibles.find(
-              (item) => item.id == id
-            );
-            return valor ? valor.name : "Sin valor";
-          }
+    const cargarSubcategorias = async (categoriaId, nivel) => {
+      try {
+        if (categoriaId) {
+          const response = await axios.get(
+            `/productos/subcategorias/traer/${categoriaId}`
+          );
+          producto.subcategoriasDisponibles[nivel - 1] = response.data;
+        } else {
+          producto.subcategoriasDisponibles[nivel - 1] = [];
+        }
+        limpiarSubcategoriasInferiores(nivel);
+      } catch (error) {
+        console.error(
+          `Error al cargar subcategorías para nivel ${nivel}:`,
+          error
         );
-
-        producto.atributos[index].extraReferences = Array(
-          valoresSeleccionados.length
-        ).fill("");
-        producto.atributos[index].extraPrices = Array(
-          valoresSeleccionados.length
-        ).fill("");
-      });
-  });
-};
-
-const actualizarSelectAncho = () => {
-  selectRefs.value.forEach((selectElement) => {
-    if (selectElement && $(selectElement).data("select2")) {
-      $(selectElement).select2("destroy");
-      $(selectElement).select2({ width: "100%" });
-    }
-  });
-};
-
-const resetearProducto = () => {
-  Object.assign(producto, {
-    nombre: "",
-    codigo: "",
-    categoriaPrincipal: "",
-    subcategoriasSeleccionadas: ["", "", "", ""],
-    subcategoriasDisponibles: [[], [], [], []],
-    precioVenta: 0,
-    atributos: [],
-  });
-};
-
-const registrarProducto = async () => {
-  try {
-    if (!producto.atributos.length) {
-      alert("Debe seleccionar al menos un atributo.");
-      return;
-    }
-
-    const nuevoProducto = {
-      name: producto.nombre,
-      default_code: producto.codigo,
-      categ_id: producto.categoriaPrincipal,
-      subcateg1_id: producto.subcategoriasSeleccionadas[0],
-      subcateg2_id: producto.subcategoriasSeleccionadas[1],
-      subcateg3_id: producto.subcategoriasSeleccionadas[2],
-      subcateg4_id: producto.subcategoriasSeleccionadas[3],
-      list_price: producto.precioVenta,
-      attributes: producto.atributos.map((attr) => ({
-        attribute_id: attr.nombre,
-        value_ids: attr.valor.map((v) => parseInt(v)),
-        value_names: attr.valoresNombres,
-        extra_references: attr.extraReferences,
-        extra_prices: attr.extraPrices,
-      })),
+      }
     };
 
-    emit("save", nuevoProducto);
-    emit("close");
-    resetearProducto();
-  } catch (error) {
-    console.error("Error registrando producto:", error);
-    alert("Hubo un problema al registrar el producto. Inténtalo nuevamente.");
-  }
+    const actualizarSubcategorias = async (nivel, categoriaId) => {
+      try {
+        await cargarSubcategorias(categoriaId, nivel);
+      } catch (error) {
+        console.error(
+          `Error al actualizar subcategorías para nivel ${nivel}:`,
+          error
+        );
+      }
+    };
+
+    const limpiarSubcategoriasInferiores = (nivel) => {
+      for (let i = nivel; i < producto.subcategoriasSeleccionadas.length; i++) {
+        producto.subcategoriasSeleccionadas[i] = "";
+        producto.subcategoriasDisponibles[i] = [];
+      }
+    };
+
+    const cargarValoresAtributos = async (atributoId, index) => {
+      try {
+        const response = await axios.get(
+          `/productos/valores_atributos/traer/${atributoId}`
+        );
+        const valores = response.data || [];
+        producto.atributos[index].valoresDisponibles = valores;
+        producto.atributos[index].valor = [];
+        producto.atributos[index].extraReferences = [];
+        producto.atributos[index].extraPrices = [];
+        producto.atributos[index].valoresNombres = [];
+        initSelect2(index);
+      } catch (error) {
+        console.error(
+          `Error al cargar valores del atributo ${atributoId}:`,
+          error
+        );
+      }
+    };
+
+    const agregarAtributo = () => {
+      producto.atributos.push({
+        nombre: "",
+        valor: [],
+        valoresDisponibles: [],
+        extraReferences: [],
+        extraPrices: [],
+        valoresNombres: [],
+      });
+    };
+
+    const eliminarAtributo = (index) => {
+      producto.atributos.splice(index, 1);
+    };
+
+    const initSelect2 = (index) => {
+      setTimeout(() => {
+        $(selectRefs.value[index])
+          .select2({
+            placeholder: "Seleccione valores",
+            allowClear: true,
+          })
+          .off("change")
+          .on("change", function () {
+            const valoresSeleccionados = $(this).val();
+            producto.atributos[index].valor = valoresSeleccionados;
+
+            producto.atributos[index].valoresNombres = valoresSeleccionados.map(
+              (id) => {
+                const valor = producto.atributos[index].valoresDisponibles.find(
+                  (item) => item.id == id
+                );
+                return valor ? valor.name : "Sin valor";
+              }
+            );
+
+            producto.atributos[index].extraReferences = Array(
+              valoresSeleccionados.length
+            ).fill("");
+            producto.atributos[index].extraPrices = Array(
+              valoresSeleccionados.length
+            ).fill("");
+          });
+      });
+    };
+
+    const actualizarSelectAncho = () => {
+      selectRefs.value.forEach((selectElement) => {
+        if (selectElement && $(selectElement).data("select2")) {
+          $(selectElement).select2("destroy");
+          $(selectElement).select2({ width: "100%" });
+        }
+      });
+    };
+
+    const resetearProducto = () => {
+      Object.assign(producto, {
+        nombre: "",
+        codigo: "",
+        categoriaPrincipal: "",
+        subcategoriasSeleccionadas: ["", "", "", ""],
+        subcategoriasDisponibles: [[], [], [], []],
+        precioVenta: 0,
+        atributos: [],
+      });
+    };
+
+    const registrarProducto = async () => {
+      try {
+        if (!producto.atributos.length) {
+          alert("Debe seleccionar al menos un atributo.");
+          return;
+        }
+
+        const categoriasConcatenadas = [
+          props.categorias.find(
+            (categoria) => categoria.id === producto.categoriaPrincipal
+          )?.name,
+          ...producto.subcategoriasSeleccionadas.map(
+            (subcategoriaId, index) => {
+              const subcategoria = producto.subcategoriasDisponibles[
+                index
+              ].find((subcat) => subcat.id === subcategoriaId);
+              return subcategoria?.name || null;
+            }
+          ),
+        ]
+          .filter((name) => name)
+          .join(" / ");
+
+        const nuevoProducto = {
+          name: producto.nombre,
+          default_code: producto.codigo,
+          categ_id: producto.categoriaPrincipal,
+          subcateg1_id: producto.subcategoriasSeleccionadas[0],
+          subcateg2_id: producto.subcategoriasSeleccionadas[1],
+          subcateg3_id: producto.subcategoriasSeleccionadas[2],
+          subcateg4_id: producto.subcategoriasSeleccionadas[3],
+          list_price: producto.precioVenta,
+          categoriasConcatenadas,
+          attributes: producto.atributos.map((attr) => ({
+            attribute_id: attr.nombre,
+            value_ids: attr.valor.map((v) => parseInt(v)),
+            value_names: attr.valoresNombres,
+            extra_references: attr.extraReferences,
+            extra_prices: attr.extraPrices,
+          })),
+        };
+
+        emit("save", nuevoProducto);
+        emit("close");
+        resetearProducto();
+      } catch (error) {
+        console.error("Error registrando producto:", error);
+        alert(
+          "Hubo un problema al registrar el producto. Inténtalo nuevamente."
+        );
+      }
+    };
+
+    const manejarResize = () => {
+      actualizarSelectAncho();
+    };
+
+    onMounted(() => {
+      window.addEventListener("resize", manejarResize);
+      actualizarSelectAncho();
+      watch(
+        () => producto.atributos,
+        (newAtributos) => {
+          newAtributos.forEach((_, index) => initSelect2(index));
+        },
+        { deep: true }
+      );
+    });
+
+    onBeforeUnmount(() => {
+      window.removeEventListener("resize", manejarResize);
+    });
+
+    return {
+      producto,
+      selectRefs,
+      cargarSubcategorias,
+      actualizarSubcategorias,
+      limpiarSubcategoriasInferiores,
+      cargarValoresAtributos,
+      agregarAtributo,
+      eliminarAtributo,
+      resetearProducto,
+      registrarProducto,
+    };
+  },
 };
-
-const manejarResize = () => {
-  actualizarSelectAncho();
-};
-
-onMounted(() => {
-  window.addEventListener("resize", manejarResize);
-  actualizarSelectAncho();
-  watch(
-    () => producto.atributos,
-    (newAtributos) => {
-      newAtributos.forEach((_, index) => initSelect2(index));
-    },
-    { deep: true }
-  );
-});
-
-onBeforeUnmount(() => {
-  window.removeEventListener("resize", manejarResize);
-});
 </script>
+
 
 <template>
   <div v-if="mostrar" class="fixed z-10 inset-0 overflow-y-auto">
