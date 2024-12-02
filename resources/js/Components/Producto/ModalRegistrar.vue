@@ -29,6 +29,18 @@ export default {
       atributos: [],
     });
 
+    const errores = reactive({
+      nombre: false,
+      categoria: false,
+      precioVenta: false,
+    });
+
+    const validarCampos = () => {
+      errores.nombre = !producto.nombre.length;
+      errores.categoria = !producto.categoriaPrincipal;
+      errores.precioVenta = producto.precioVenta < 0;
+    };
+
     const selectRefs = ref([]);
 
     const cargarSubcategorias = async (categoriaId, nivel) => {
@@ -91,12 +103,21 @@ export default {
     const agregarAtributo = () => {
       producto.atributos.push({
         nombre: "",
+        referencia_global: "",
         valor: [],
         valoresDisponibles: [],
         extraReferences: [],
         extraPrices: [],
         valoresNombres: [],
       });
+    };
+
+    const actualizarReferencias = (index) => {
+      const atributo = producto.atributos[index];
+      atributo.extraReferences = atributo.valor.map(
+        (valor, i) =>
+          `${atributo.referencia_global} - ${atributo.valoresNombres[i] || ""}`
+      );
     };
 
     const eliminarAtributo = (index) => {
@@ -157,8 +178,10 @@ export default {
 
     const registrarProducto = async () => {
       try {
-        if (!producto.atributos.length) {
-          alert("Debe seleccionar al menos un atributo.");
+        validarCampos();
+
+        if (errores.nombre || errores.categoria || errores.precioVenta) {
+          alert("Debe completar los campos requeridos.");
           return;
         }
 
@@ -230,7 +253,9 @@ export default {
 
     return {
       producto,
+      errores,
       selectRefs,
+      actualizarReferencias,
       cargarSubcategorias,
       actualizarSubcategorias,
       limpiarSubcategoriasInferiores,
@@ -280,6 +305,9 @@ export default {
                 v-model="producto.nombre"
                 class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
               />
+              <p v-if="errores.nombre" class="text-red-500 text-xs mt-1">
+                Este campo Nombre es requerido.
+              </p>
             </div>
             <div>
               <label
@@ -322,6 +350,9 @@ export default {
                   {{ categoria.name }}
                 </option>
               </select>
+              <p v-if="errores.categoria" class="text-red-500 text-xs mt-1">
+                Este campo Categoría es requerido.
+              </p>
             </div>
 
             <div v-for="nivel in 4" :key="`subcategoria_${nivel}`">
@@ -369,6 +400,9 @@ export default {
               v-model="producto.precioVenta"
               class="mt-1 block w-full border-gray-300 rounded-md shadow-sm focus:border-blue-500 focus:ring-blue-500 sm:text-sm"
             />
+            <p v-if="errores.precioVenta" class="text-red-500 text-xs mt-1">
+              Este campo Precio Venta es requerido.
+            </p>
           </div>
 
           <div class="mt-6">
@@ -431,6 +465,13 @@ export default {
                 </div>
 
                 <div class="col-span-1 md:col-span-2">
+                  <input
+                    type="text"
+                    v-model="atributo.referencia_global"
+                    @input="actualizarReferencias(index)"
+                    placeholder="Referencia global aquí"
+                    class="w-full border-gray-300 rounded-md shadow-sm py-1 text-[14px]"
+                  />
                   <label class="block text-sm font-medium text-gray-700">
                     Referencia Interna:
                   </label>
@@ -448,7 +489,7 @@ export default {
                   </div>
                 </div>
 
-                <div class="col-span-1 md:col-span-2">
+                <div class="col-span-1 md:col-span-2 mt-[34px]">
                   <label class="block text-sm font-medium text-gray-700">
                     Precio Extra:
                   </label>
@@ -466,7 +507,7 @@ export default {
                   </div>
                 </div>
 
-                <div class="col-span-1 text-left mt-4">
+                <div class="col-span-1 text-left mt-[59px]">
                   <button
                     type="button"
                     @click="eliminarAtributo(index)"
@@ -492,7 +533,7 @@ export default {
           <div class="mt-6 flex justify-end">
             <button
               type="button"
-              @click="emit('close')"
+              @click="$emit('close')"
               class="bg-red-500 hover:bg-red-700 text-white font-bold py-2 px-4 rounded"
             >
               Cancelar

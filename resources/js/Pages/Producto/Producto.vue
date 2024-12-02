@@ -81,10 +81,10 @@ onMounted(async () => {
 const agregarProductoALista = (nuevoProducto) => {
   productos.value.push(nuevoProducto);
 
-  if (!nuevoProducto.attributes || !nuevoProducto.attributes.length) {
-    console.warn("El producto registrado no tiene atributos definidos.");
-    return;
-  }
+  //   if (!nuevoProducto.attributes || !nuevoProducto.attributes.length) {
+  //     console.warn("El producto registrado no tiene atributos definidos.");
+  //     return;
+  //   }
 
   nuevoProducto.attributes.forEach((attribute) => {
     if (attribute.value_ids && attribute.value_names) {
