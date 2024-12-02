@@ -1,4 +1,5 @@
 <script setup>
+import Swal from "sweetalert2";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import TablaProducto from "@/Components/Producto/TablaProducto.vue";
 import ModalRegistrar from "@/Components/Producto/ModalRegistrar.vue";
@@ -141,13 +142,47 @@ const cerrarModal = () => {
   mostrarModal.value = false;
 };
 
-const duplicarProducto = async (producto) => {
+const generarIdUnico = (productos) => {
+  const maxId = productos.reduce(
+    (max, producto) => (producto.id > max ? producto.id : max),
+    0
+  );
+  return maxId + 1;
+};
+
+const duplicarProducto = (producto) => {
   try {
-    const response = await axios.post("/api/productos/duplicar", { producto });
-    await cargarProductos();
-    alert("Producto duplicado exitosamente");
+    const newId = generarIdUnico(productos.value);
+
+    const duplicatedProducto = {
+      ...producto,
+      id: newId,
+      name: `${producto.name} (Copia)`,
+      categoriasConcatenadas: producto.categoriasConcatenadas,
+      attributes: producto.attributes.map((attr) => ({
+        ...attr,
+        value_ids: [...attr.value_ids],
+        extra_references: [...attr.extra_references],
+        extra_prices: [...attr.extra_prices],
+      })),
+    };
+
+    productos.value.push(duplicatedProducto);
+
+    Swal.fire({
+      icon: "success",
+      title: "Producto Duplicado",
+      text: `Producto "${duplicatedProducto.name}" duplicado exitosamente con ID ${newId}`,
+      timer: 2000,
+    });
   } catch (error) {
-    console.error("Error al duplicar producto:", error);
+    console.error("Error al duplicar el producto:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error al duplicar Producto",
+      text: "Hubo un error al duplicar el producto. Por favor, intenta nuevamente.",
+      timer: 2000,
+    });
   }
 };
 

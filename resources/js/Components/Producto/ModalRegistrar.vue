@@ -1,4 +1,5 @@
 <script>
+import Swal from "sweetalert2";
 import { reactive, ref, onMounted, onBeforeUnmount, watch } from "vue";
 import axios from "axios";
 
@@ -181,10 +182,14 @@ export default {
         validarCampos();
 
         if (errores.nombre || errores.categoria || errores.precioVenta) {
-          alert("Debe completar los campos requeridos.");
+          Swal.fire({
+            icon: "error",
+            title: "Error",
+            text: "Debe completar todos los campos requeridos.",
+            timer: 2000,
+          });
           return;
         }
-
         const categoriasConcatenadas = [
           props.categorias.find(
             (categoria) => categoria.id === producto.categoriaPrincipal
@@ -221,8 +226,15 @@ export default {
         };
 
         emit("save", nuevoProducto);
-        emit("close");
         resetearProducto();
+        emit("close");
+
+        Swal.fire({
+          icon: "success",
+          title: "Producto Registrado",
+          text: "El producto se ha registrado correctamente.",
+          timer: 2000,
+        });
       } catch (error) {
         console.error("Error registrando producto:", error);
         alert(
