@@ -137,6 +137,18 @@ const actualizarSelectAncho = () => {
   });
 };
 
+const resetearProducto = () => {
+  Object.assign(producto, {
+    nombre: "",
+    codigo: "",
+    categoriaPrincipal: "",
+    subcategoriasSeleccionadas: ["", "", "", ""],
+    subcategoriasDisponibles: [[], [], [], []],
+    precioVenta: 0,
+    atributos: [],
+  });
+};
+
 const registrarProducto = async () => {
   try {
     if (!producto.atributos.length) {
@@ -164,6 +176,7 @@ const registrarProducto = async () => {
 
     emit("save", nuevoProducto);
     emit("close");
+    resetearProducto();
   } catch (error) {
     console.error("Error registrando producto:", error);
     alert("Hubo un problema al registrar el producto. Inténtalo nuevamente.");

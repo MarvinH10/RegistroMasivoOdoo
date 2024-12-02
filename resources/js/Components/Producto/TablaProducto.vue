@@ -19,6 +19,26 @@ defineProps({
 });
 
 const emits = defineEmits(["duplicar", "editar", "eliminar"]);
+
+const getColorClass = () => {
+  const colors = [
+    "bg-red-500",
+    "bg-blue-500",
+    "bg-green-500",
+    "bg-yellow-500",
+    "bg-purple-500",
+    "bg-pink-500",
+    "bg-teal-500",
+    "bg-orange-500",
+    "bg-cyan-500",
+    "bg-rose-500",
+    "bg-lime-500",
+    "bg-amber-500",
+    "bg-indigo-500",
+    "bg-emerald-500",
+  ];
+  return colors[Math.floor(Math.random() * colors.length)];
+};
 </script>
 
 <template>
@@ -60,7 +80,7 @@ const emits = defineEmits(["duplicar", "editar", "eliminar"]);
           <span
             v-for="attribute in producto.attributes"
             :key="attribute.attribute_id"
-            class="tag"
+            class="flex flex-wrap gap-1"
           >
             {{ traerNombresAtributos(attribute.attribute_id) }}
           </span>
@@ -69,8 +89,14 @@ const emits = defineEmits(["duplicar", "editar", "eliminar"]);
           <span
             v-for="attribute in producto.attributes"
             :key="attribute.attribute_id"
+            class="flex flex-wrap gap-1"
           >
-            <span v-for="value in attribute.value_ids" :key="value" class="tag">
+            <span
+              v-for="(value, index) in attribute.value_ids"
+              :key="value"
+              class="inline-block text-xs font-medium px-2 py-1 rounded-full text-white mb-2"
+              :class="getColorClass(index)"
+            >
               {{ traerNombresValoresAtributos(value) }}
             </span>
           </span>
@@ -79,11 +105,13 @@ const emits = defineEmits(["duplicar", "editar", "eliminar"]);
           <span
             v-for="attribute in producto.attributes"
             :key="attribute.attribute_id"
+            class="flex flex-wrap gap-1"
           >
             <span
               v-for="(ref, index) in attribute.extra_references"
               :key="index"
-              class="tag"
+              class="inline-block text-xs font-medium px-2 py-1 rounded-full text-white mb-2"
+              :class="getColorClass(index)"
             >
               {{ ref }}
             </span>
@@ -93,11 +121,13 @@ const emits = defineEmits(["duplicar", "editar", "eliminar"]);
           <span
             v-for="attribute in producto.attributes"
             :key="attribute.attribute_id"
+            class="flex flex-wrap gap-1"
           >
             <span
               v-for="(price, index) in attribute.extra_prices"
               :key="index"
-              class="tag"
+              class="inline-block text-xs font-medium px-2 py-1 rounded-full text-white mb-2"
+              :class="getColorClass(index)"
             >
               {{ price !== null ? "S/. " + price : "S/. 0" }}
             </span>
