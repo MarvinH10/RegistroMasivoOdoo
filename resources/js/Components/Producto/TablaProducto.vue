@@ -143,7 +143,7 @@ const getColorClass = () => {
             <i class="fas fa-edit"></i>
           </button>
           <button
-            @click="$emit('eliminar', producto.id)"
+            @click="$emit('eliminar', producto)"
             class="bg-red-500 hover:bg-red-700 text-white font-bold py-1 px-2 ml-1 rounded"
           >
             <i class="fas fa-trash-alt"></i>

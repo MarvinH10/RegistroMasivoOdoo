@@ -3,6 +3,7 @@ import Swal from "sweetalert2";
 import AppLayout from "@/Layouts/AppLayout.vue";
 import TablaProducto from "@/Components/Producto/TablaProducto.vue";
 import ModalRegistrar from "@/Components/Producto/ModalRegistrar.vue";
+import ModalEliminar from "@/Components/Producto/ModalEliminar.vue";
 import axios from "axios";
 import { ref, onMounted, reactive } from "vue";
 
@@ -18,6 +19,8 @@ const atributos = ref([]);
 const valoresAtributos = ref([]);
 const cargando = ref(false);
 const mostrarModal = ref(false);
+const mostrarModalEliminar = ref(false);
+const productoSeleccionado = ref(null);
 const registrarProductosEnOdoo = ref(false);
 
 const cargarProductos = async () => {
@@ -190,16 +193,39 @@ const editarProducto = (producto) => {
   console.log("Abrir modal para editar producto:", producto);
 };
 
-const eliminarProducto = async (id) => {
-  if (confirm("¿Estás seguro de eliminar este producto?")) {
-    try {
-      await axios.delete(`/api/productos/${id}`);
-      await cargarProductos();
-      alert("Producto eliminado exitosamente");
-    } catch (error) {
-      console.error("Error al eliminar producto:", error);
-    }
+const abrirModalEliminar = (producto) => {
+  productoSeleccionado.value = producto;
+  mostrarModalEliminar.value = true;
+};
+
+const confirmarEliminacion = async () => {
+  try {
+    await axios.delete(`/productos/eliminar/${productoSeleccionado.value.id}`);
+    mostrarModalEliminar.value = false;
+
+    productos.value = productos.value.filter(
+      (producto) => producto.id !== productoSeleccionado.value.id
+    );
+
+    Swal.fire({
+      icon: "success",
+      title: "Producto Eliminado",
+      text: "El producto se eliminó correctamente.",
+      timer: 2000,
+    });
+  } catch (error) {
+    console.error("Error al eliminar producto:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error al eliminar",
+      text: "Hubo un problema al eliminar el producto. Por favor, intenta nuevamente.",
+      timer: 2000,
+    });
   }
+};
+
+const cerrarModalEliminar = () => {
+  mostrarModalEliminar.value = false;
 };
 </script>
 
@@ -230,7 +256,7 @@ const eliminarProducto = async (id) => {
               :traerNombresValoresAtributos="traerNombresValoresAtributos"
               @duplicar="duplicarProducto"
               @editar="editarProducto"
-              @eliminar="eliminarProducto"
+              @eliminar="abrirModalEliminar"
             />
           </div>
           <p
@@ -265,6 +291,13 @@ const eliminarProducto = async (id) => {
       :atributos="atributos"
       @save="agregarProductoALista"
       @close="cerrarModal"
+    />
+    <ModalEliminar
+      :mostrar="mostrarModalEliminar"
+      :titulo="'Eliminar Producto en Listado'"
+      :mensaje="'¿Estás seguro de eliminar este producto? Esta acción no se puede deshacer.'"
+      @confirmar="confirmarEliminacion"
+      @cancelar="cerrarModalEliminar"
     />
   </AppLayout>
 </template>
