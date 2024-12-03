@@ -48,6 +48,7 @@ class ProductoController extends Controller
                 'subcateg2_id' => 'nullable|integer',
                 'subcateg3_id' => 'nullable|integer',
                 'subcateg4_id' => 'nullable|integer',
+                'categoriasConcatenadas' => 'nullable|string|max:600',
                 'list_price' => 'nullable|numeric',
                 'attributes' => 'nullable|array',
                 'attributes.*.attribute_id' => 'required|integer',
@@ -111,20 +112,39 @@ class ProductoController extends Controller
             $productoIndex = array_search($id, array_column($productos, 'id'));
 
             if ($productoIndex === false) {
+                Log::warning("Producto no encontrado: ID {$id}");
                 return response()->json(['error' => 'Producto no encontrado'], 404);
             }
 
-            $productos[$productoIndex] = array_merge($productos[$productoIndex], $request->all());
+            $validatedData = $request->validate([
+                'name' => 'required|string|max:255',
+                'default_code' => 'nullable|string|max:255',
+                'categ_id' => 'required|integer',
+                'subcateg1_id' => 'nullable|integer',
+                'subcateg2_id' => 'nullable|integer',
+                'subcateg3_id' => 'nullable|integer',
+                'subcateg4_id' => 'nullable|integer',
+                'list_price' => 'nullable|numeric',
+                'attributes' => 'nullable|array',
+                'attributes.*.attribute_id' => 'required|integer',
+                'attributes.*.value_ids' => 'required|array',
+                'attributes.*.value_ids.*' => 'required|integer',
+                'attributes.*.extra_references' => 'nullable|array',
+                'attributes.*.extra_references.*' => 'nullable|string',
+                'attributes.*.extra_prices' => 'nullable|array',
+                'attributes.*.extra_prices.*' => 'nullable|numeric',
+            ]);
 
+            $productos[$productoIndex] = array_merge($productos[$productoIndex], $validatedData);
             $this->writeProductsToFile($productos);
 
             return response()->json($productos[$productoIndex]);
         } catch (Exception $e) {
-            Log::error('Error actualizando producto: ' . $e->getMessage());
-
+            Log::error('Error actualizando producto:', ['message' => $e->getMessage()]);
             return response()->json(['error' => 'Error actualizando producto'], 500);
         }
     }
+
 
     public function quitar($id)
     {

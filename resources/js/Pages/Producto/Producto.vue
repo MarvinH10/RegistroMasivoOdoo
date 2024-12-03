@@ -4,6 +4,7 @@ import AppLayout from "@/Layouts/AppLayout.vue";
 import TablaProducto from "@/Components/Producto/TablaProducto.vue";
 import ModalRegistrar from "@/Components/Producto/ModalRegistrar.vue";
 import ModalEliminar from "@/Components/Producto/ModalEliminar.vue";
+import ModalEditar from "@/Components/Producto/ModalEditar.vue";
 import axios from "axios";
 import { ref, onMounted, reactive } from "vue";
 
@@ -20,7 +21,8 @@ const valoresAtributos = ref([]);
 const cargando = ref(false);
 const mostrarModal = ref(false);
 const mostrarModalEliminar = ref(false);
-const productoSeleccionado = ref(null);
+const mostrarModalEditar = ref(false);
+const productoSeleccionado = ref({});
 const registrarProductosEnOdoo = ref(false);
 
 const cargarProductos = async () => {
@@ -82,29 +84,34 @@ onMounted(async () => {
   ]);
 });
 
-const agregarProductoALista = (nuevoProducto) => {
-  productos.value.push(nuevoProducto);
-
-  //   if (!nuevoProducto.attributes || !nuevoProducto.attributes.length) {
-  //     console.warn("El producto registrado no tiene atributos definidos.");
-  //     return;
-  //   }
-
-  nuevoProducto.attributes.forEach((attribute) => {
-    if (attribute.value_ids && attribute.value_names) {
-      attribute.value_ids.forEach((valueId, index) => {
-        if (
-          !valoresAtributos.value.some((val) => val.id === valueId) &&
-          attribute.value_names[index]
-        ) {
-          valoresAtributos.value.push({
-            id: valueId,
-            name: attribute.value_names[index],
-          });
-        }
-      });
-    }
-  });
+const agregarProductoALista = async (nuevoProducto) => {
+  try {
+    const response = await axios.post("/productos/almacenar", nuevoProducto);
+    productos.value.push(response.data);
+    nuevoProducto.attributes.forEach((attribute) => {
+      if (attribute.value_ids && attribute.value_names) {
+        attribute.value_ids.forEach((valueId, index) => {
+          if (
+            !valoresAtributos.value.some((val) => val.id === valueId) &&
+            attribute.value_names[index]
+          ) {
+            valoresAtributos.value.push({
+              id: valueId,
+              name: attribute.value_names[index],
+            });
+          }
+        });
+      }
+    });
+  } catch (error) {
+    console.error("Error al almacenar el producto:", error);
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Hubo un problema al almacenar el producto.",
+      timer: 2000,
+    });
+  }
 };
 
 const registrarTodosLosProductos = async () => {
@@ -189,8 +196,31 @@ const duplicarProducto = (producto) => {
   }
 };
 
-const editarProducto = (producto) => {
-  console.log("Abrir modal para editar producto:", producto);
+const abrirModalEditar = (producto) => {
+  if (producto && producto.id) {
+    productoSeleccionado.value = JSON.parse(JSON.stringify(producto));
+    mostrarModalEditar.value = true;
+  } else {
+    Swal.fire({
+      icon: "error",
+      title: "Error",
+      text: "Producto inválido o sin ID. No se puede editar.",
+      timer: 2000,
+    });
+  }
+};
+
+const actualizarProductoEnLista = (productoActualizado) => {
+  const index = productos.value.findIndex(
+    (p) => p.id === productoActualizado.id
+  );
+  if (index !== -1) {
+    productos.value[index] = productoActualizado;
+  }
+};
+
+const cerrarModalEditar = () => {
+  mostrarModalEditar.value = false;
 };
 
 const abrirModalEliminar = (producto) => {
@@ -255,7 +285,7 @@ const cerrarModalEliminar = () => {
               :traerNombresAtributos="traerNombresAtributos"
               :traerNombresValoresAtributos="traerNombresValoresAtributos"
               @duplicar="duplicarProducto"
-              @editar="editarProducto"
+              @editar="abrirModalEditar"
               @eliminar="abrirModalEliminar"
             />
           </div>
@@ -298,6 +328,15 @@ const cerrarModalEliminar = () => {
       :mensaje="'¿Estás seguro de eliminar este producto? Esta acción no se puede deshacer.'"
       @confirmar="confirmarEliminacion"
       @cancelar="cerrarModalEliminar"
+    />
+    <ModalEditar
+      :producto-edicion="productoSeleccionado"
+      :mostrar="mostrarModalEditar"
+      :categorias="categorias"
+      :subcategorias="subcategorias"
+      :atributos="atributos"
+      @save="actualizarProductoEnLista"
+      @close="cerrarModalEditar"
     />
   </AppLayout>
 </template>
