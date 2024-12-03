@@ -57,18 +57,12 @@ export default {
     };
 
     const asignarProductoEdicion = async (productoEdicion) => {
-      console.log("Asignando productoEdicion:", productoEdicion);
+    //   console.log("Asignando productoEdicion:", productoEdicion);
 
       producto.id = productoEdicion?.id ?? null;
       producto.nombre = productoEdicion.name || "";
       producto.codigo = productoEdicion.default_code || "";
       producto.categoriaPrincipal = productoEdicion.categ_id || "";
-      producto.subcategoriasSeleccionadas = [
-        productoEdicion.subcateg1_id || "",
-        productoEdicion.subcateg2_id || "",
-        productoEdicion.subcateg3_id || "",
-        productoEdicion.subcateg4_id || "",
-      ];
       producto.precioVenta = productoEdicion.list_price || 0;
       producto.atributos =
         productoEdicion.attributes?.map((attr) => ({
@@ -80,8 +74,23 @@ export default {
           valoresNombres: attr.value_names || [],
         })) || [];
 
+      producto.subcategoriasSeleccionadas = [
+        productoEdicion.subcateg1_id || "",
+        productoEdicion.subcateg2_id || "",
+        productoEdicion.subcateg3_id || "",
+        productoEdicion.subcateg4_id || "",
+      ];
+
+      // Cargar las subcategorías disponibles para cada nivel
       if (producto.categoriaPrincipal) {
         await cargarSubcategorias(producto.categoriaPrincipal, 1);
+      }
+
+      for (let nivel = 2; nivel <= 4; nivel++) {
+        const subcategoriaId = producto.subcategoriasSeleccionadas[nivel - 2];
+        if (subcategoriaId) {
+          await cargarSubcategorias(subcategoriaId, nivel);
+        }
       }
 
       producto.atributos.forEach(async (atributo, index) => {
@@ -90,7 +99,7 @@ export default {
         }
       });
 
-      console.log("Producto después de asignar:", producto);
+    //   console.log("Producto después de asignar:", producto);
     };
 
     const selectRefs = ref([]);
@@ -105,7 +114,6 @@ export default {
         } else {
           producto.subcategoriasDisponibles[nivel - 1] = [];
         }
-        limpiarSubcategoriasInferiores(nivel);
       } catch (error) {
         console.error(
           `Error al cargar subcategorías para nivel ${nivel}:`,
@@ -122,13 +130,6 @@ export default {
           `Error al actualizar subcategorías para nivel ${nivel}:`,
           error
         );
-      }
-    };
-
-    const limpiarSubcategoriasInferiores = (nivel) => {
-      for (let i = nivel; i < producto.subcategoriasSeleccionadas.length; i++) {
-        producto.subcategoriasSeleccionadas[i] = "";
-        producto.subcategoriasDisponibles[i] = [];
       }
     };
 
@@ -309,7 +310,7 @@ export default {
       () => props.productoEdicion,
       async (newProducto) => {
         if (newProducto && Object.keys(newProducto).length) {
-          console.log("Nuevo producto recibido en watch:", newProducto);
+        //   console.log("Nuevo producto recibido en watch:", newProducto);
           await asignarProductoEdicion(newProducto);
         }
       },
@@ -339,7 +340,6 @@ export default {
       actualizarReferencias,
       cargarSubcategorias,
       actualizarSubcategorias,
-      limpiarSubcategoriasInferiores,
       cargarValoresAtributos,
       agregarAtributo,
       eliminarAtributo,

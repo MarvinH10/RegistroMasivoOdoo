@@ -135,6 +135,38 @@ class ProductoController extends Controller
                 'attributes.*.extra_prices.*' => 'nullable|numeric',
             ]);
 
+            if (!empty($validatedData['attributes'])) {
+                $processedAttributes = [];
+                $attributesWithRefs = [];
+
+                foreach ($validatedData['attributes'] as $attribute) {
+                    $hasRefs = false;
+                    if (!empty($attribute['extra_references'])) {
+                        foreach ($attribute['extra_references'] as $ref) {
+                            if (!empty($ref)) {
+                                $hasRefs = true;
+                                break;
+                            }
+                        }
+                    }
+
+                    $processedAttribute = [
+                        'attribute_id' => $attribute['attribute_id'],
+                        'value_ids' => $attribute['value_ids'] ?? [],
+                        'extra_references' => $attribute['extra_references'] ?? [],
+                        'extra_prices' => $attribute['extra_prices'] ?? [],
+                    ];
+
+                    if ($hasRefs) {
+                        $attributesWithRefs[] = $processedAttribute;
+                    } else {
+                        $processedAttributes[] = $processedAttribute;
+                    }
+                }
+
+                $validatedData['attributes'] = array_merge($processedAttributes, $attributesWithRefs);
+            }
+
             $productos[$productoIndex] = array_merge($productos[$productoIndex], $validatedData);
             $this->writeProductsToFile($productos);
 
