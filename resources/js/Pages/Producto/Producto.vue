@@ -330,7 +330,7 @@ const cerrarModalEliminar = () => {
       @cancelar="cerrarModalEliminar"
     />
     <ModalEditar
-      :producto-edicion="productoSeleccionado"
+      :productoEdicion="productoSeleccionado"
       :mostrar="mostrarModalEditar"
       :categorias="categorias"
       :subcategorias="subcategorias"

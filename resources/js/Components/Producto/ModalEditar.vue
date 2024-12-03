@@ -57,13 +57,12 @@ export default {
     };
 
     const asignarProductoEdicion = async (productoEdicion) => {
-    //   console.log("Asignando productoEdicion:", productoEdicion);
-
       producto.id = productoEdicion?.id ?? null;
       producto.nombre = productoEdicion.name || "";
       producto.codigo = productoEdicion.default_code || "";
       producto.categoriaPrincipal = productoEdicion.categ_id || "";
       producto.precioVenta = productoEdicion.list_price || 0;
+
       producto.atributos =
         productoEdicion.attributes?.map((attr) => ({
           nombre: attr.attribute_id || "",
@@ -81,44 +80,47 @@ export default {
         productoEdicion.subcateg4_id || "",
       ];
 
-      // Cargar las subcategorías disponibles para cada nivel
-      if (producto.categoriaPrincipal) {
-        await cargarSubcategorias(producto.categoriaPrincipal, 1);
+      try {
+        const subcategoriasPromises = [1, 2, 3, 4].map((nivel) => {
+          const id =
+            nivel === 1
+              ? producto.categoriaPrincipal
+              : producto.subcategoriasSeleccionadas[nivel - 2];
+          return id ? cargarSubcategorias(id, nivel) : resolve([]);
+        });
+
+        const resultados = await Promise.all(subcategoriasPromises);
+        resultados.forEach((subcategorias, index) => {
+          producto.subcategoriasDisponibles[index] = subcategorias;
+        });
+
+        const atributosPromises = producto.atributos.map((atributo, index) => {
+          return atributo.nombre
+            ? cargarValoresAtributos(atributo.nombre, index)
+            : Promise.resolve();
+        });
+
+        await Promise.all(atributosPromises);
+      } catch (error) {
+        console.error("Error al cargar producto y subcategorías:", error);
       }
-
-      for (let nivel = 2; nivel <= 4; nivel++) {
-        const subcategoriaId = producto.subcategoriasSeleccionadas[nivel - 2];
-        if (subcategoriaId) {
-          await cargarSubcategorias(subcategoriaId, nivel);
-        }
-      }
-
-      producto.atributos.forEach(async (atributo, index) => {
-        if (atributo.nombre) {
-          await cargarValoresAtributos(atributo.nombre, index);
-        }
-      });
-
-    //   console.log("Producto después de asignar:", producto);
+      // console.log("Producto después de asignar:", producto);
     };
 
     const selectRefs = ref([]);
 
     const cargarSubcategorias = async (categoriaId, nivel) => {
       try {
-        if (categoriaId) {
-          const response = await axios.get(
-            `/productos/subcategorias/traer/${categoriaId}`
-          );
-          producto.subcategoriasDisponibles[nivel - 1] = response.data;
-        } else {
-          producto.subcategoriasDisponibles[nivel - 1] = [];
-        }
+        const response = await axios.get(
+          `/productos/subcategorias/traer/${categoriaId}`
+        );
+        return response.data || [];
       } catch (error) {
         console.error(
-          `Error al cargar subcategorías para nivel ${nivel}:`,
+          `Error al cargar subcategorías para la categoría ${categoriaId} (nivel ${nivel}):`,
           error
         );
+        return [];
       }
     };
 
@@ -133,6 +135,19 @@ export default {
       }
     };
 
+    const cargarAtributos = async () => {
+      try {
+        const response = await axios.get(`/productos/atributos/traer`);
+        const atributos = response.data || [];
+        selectRefs.value = atributos.map((a) => ({
+          value: a.id,
+          label: a.name,
+        }));
+      } catch (error) {
+        console.error("Error al cargar atributos:", error);
+      }
+    };
+
     const cargarValoresAtributos = async (atributoId, index) => {
       try {
         const response = await axios.get(
@@ -143,11 +158,10 @@ export default {
         producto.atributos[index].valor = [];
         producto.atributos[index].extraReferences = [];
         producto.atributos[index].extraPrices = [];
-        producto.atributos[index].valoresNombres = [];
-        initSelect2(index);
+        producto.atributos[index].valoresNombres = valores.map((v) => v.name);
       } catch (error) {
         console.error(
-          `Error al cargar valores del atributo ${atributoId}:`,
+          `Error al cargar valores del atributo ${atributoId} (índice ${index}):`,
           error
         );
       }
@@ -163,6 +177,14 @@ export default {
         extraPrices: [],
         valoresNombres: [],
       });
+    };
+
+    const actualizarAtributos = async () => {
+      try {
+        await cargarValoresAtributos();
+      } catch (error) {
+        console.error("Error al actualizar atributos:", error);
+      }
     };
 
     const actualizarReferencias = (index) => {
@@ -310,7 +332,7 @@ export default {
       () => props.productoEdicion,
       async (newProducto) => {
         if (newProducto && Object.keys(newProducto).length) {
-        //   console.log("Nuevo producto recibido en watch:", newProducto);
+          // console.log("Nuevo producto recibido en watch:", newProducto);
           await asignarProductoEdicion(newProducto);
         }
       },
@@ -337,10 +359,15 @@ export default {
       producto,
       errores,
       selectRefs,
-      actualizarReferencias,
+    //   CARGAR
       cargarSubcategorias,
-      actualizarSubcategorias,
+      cargarAtributos,
       cargarValoresAtributos,
+    //   ACTUALIZAR
+      actualizarReferencias,
+      actualizarSubcategorias,
+      actualizarAtributos,
+    //   ACCIONES
       agregarAtributo,
       eliminarAtributo,
       actualizarProducto,
