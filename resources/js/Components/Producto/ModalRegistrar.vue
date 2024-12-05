@@ -226,7 +226,7 @@ export default {
         };
 
         emit("save", nuevoProducto);
-        resetearProducto();
+        resetearProducto(); //ACA YA SABES QUE HACER MARVIN
         emit("close");
 
         Swal.fire({
