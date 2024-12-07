@@ -15,5 +15,6 @@ Route::middleware(['auth'])->group(function () {
         Route::get('/productos/subcategorias/traer/{id}', 'traerSubcategorias');
         Route::get('/productos/atributos/traer', 'traerAtributos');
         Route::get('/productos/valores_atributos/traer/{id}', 'traerValoresAtributos');
+        Route::post('/productos/registrar-en-odoo', 'registrarProductos');
     });
 });

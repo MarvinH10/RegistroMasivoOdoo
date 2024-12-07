@@ -5,6 +5,7 @@ namespace App\Http\Controllers;
 use App\Services\OdooService;
 use Exception;
 use Illuminate\Http\Request;
+use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Log;
 use Illuminate\Support\Facades\Storage;
 use Inertia\Inertia;
@@ -190,6 +191,83 @@ class ProductoController extends Controller
         } catch (Exception $e) {
             Log::error('Error quitando producto: ' . $e->getMessage());
             return response()->json(['error' => 'Error quitando producto'], 500);
+        }
+    }
+
+    private function ordenarAtributos(array $attributes)
+    {
+        $conReferencias = [];
+        $sinReferencias = [];
+
+        foreach ($attributes as $attribute) {
+            $tieneReferencias = !empty(array_filter($attribute['extra_references'] ?? [], function ($ref) {
+                return trim($ref) !== '';
+            }));
+
+            if ($tieneReferencias) {
+                $conReferencias[] = $attribute;
+            } else {
+                $sinReferencias[] = $attribute;
+            }
+        }
+
+        return array_merge($sinReferencias, $conReferencias);
+    }
+
+    public function registrarProductos(Request $request)
+    {
+        try {
+            $user = Auth::user();
+
+            $odooUid = $user->odoo_uid;
+
+            if (!$odooUid) {
+                return response()->json(['error' => 'El usuario no tiene un UID de Odoo asociado'], 403);
+            }
+
+            $productos = $request->all();
+            $productIds = [];
+            $bulkProductData = [];
+
+            foreach ($productos as $producto) {
+                if (!empty($producto['attributes'])) {
+                    $producto['attributes'] = $this->ordenarAtributos($producto['attributes']);
+                }
+
+                $productData = [
+                    'is_favorite' => true,
+                    'available_in_pos' => true,
+                    'name' => $producto['name'],
+                    'categ_id' => $producto['categ_id'],
+                    'default_code' => $producto['default_code'],
+                    'list_price' => $producto['list_price'],
+                    'type' => 'consu',
+                    'is_storable' => true,
+                    'create_uid' => $odooUid,
+                    'taxes_id' => [(int) 5],
+                ];
+
+                foreach (['subcateg1_id', 'subcateg2_id', 'subcateg3_id', 'subcateg4_id'] as $subcateg) {
+                    if (!empty($producto[$subcateg])) {
+                        $productData['categ_id'] = $producto[$subcateg];
+                    }
+                }
+
+                $bulkProductData[] = $productData;
+            }
+
+            $createdProductIds = $this->ServicioOdoo->createProductsBatch($bulkProductData);
+
+            foreach ($productos as $index => $producto) {
+                if (!empty($producto['attributes'])) {
+                    $this->ServicioOdoo->createVariant($createdProductIds[$index], $producto['attributes']);
+                }
+            }
+
+            return response()->json(['message' => 'Productos registrados con éxito', 'product_ids' => $createdProductIds]);
+        } catch (Exception $e) {
+            Log::error('Error registrando productos:', ['message' => $e->getMessage(), 'trace' => $e->getTraceAsString()]);
+            return response()->json(['error' => 'Error registrando productos: ' . $e->getMessage()], 500);
         }
     }
     /*FINAL FUNCIONALIDADES EN VISTA*/

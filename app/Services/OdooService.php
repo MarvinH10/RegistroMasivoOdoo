@@ -71,5 +71,15 @@ class OdooService
     {
         return $this->productoService->traerValoresAtributos($id);
     }
+
+    public function createProductsBatch($bulkProductData)
+    {
+        return $this->productoService->createProductsBatch($bulkProductData);
+    }
+
+    public function createVariant($productId, $attributes)
+    {
+        return $this->productoService->createVariant($productId, $attributes);
+    }
     /*FIN PRODUCTO SERVICIO*/
 }

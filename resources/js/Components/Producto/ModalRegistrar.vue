@@ -165,18 +165,6 @@ export default {
       });
     };
 
-    const resetearProducto = () => {
-      Object.assign(producto, {
-        nombre: "",
-        codigo: "",
-        categoriaPrincipal: "",
-        subcategoriasSeleccionadas: ["", "", "", ""],
-        subcategoriasDisponibles: [[], [], [], []],
-        precioVenta: 0,
-        atributos: [],
-      });
-    };
-
     const registrarProducto = async () => {
       try {
         validarCampos();
@@ -226,7 +214,6 @@ export default {
         };
 
         emit("save", nuevoProducto);
-        resetearProducto(); //ACA YA SABES QUE HACER MARVIN
         emit("close");
 
         Swal.fire({
@@ -274,7 +261,6 @@ export default {
       cargarValoresAtributos,
       agregarAtributo,
       eliminarAtributo,
-      resetearProducto,
       registrarProducto,
     };
   },

@@ -1,4 +1,7 @@
 <script>
+
+//AUN FALTA EN MODAL DE EDITAR ESTARA PENDIENTE FALTA UN CULO DE COSAS
+
 import Swal from "sweetalert2";
 import { reactive, ref, onMounted, onBeforeUnmount, watch } from "vue";
 import axios from "axios";

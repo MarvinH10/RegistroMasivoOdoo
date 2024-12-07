@@ -1,39 +1,45 @@
-<script setup>
-defineProps({
-  productos: {
-    type: Array,
-    required: true,
+<script>
+export default {
+  props: {
+    productos: {
+      type: Array,
+      required: true,
+    },
+    traerNombresAtributos: {
+      type: Function,
+      required: true,
+    },
+    traerNombresValoresAtributos: {
+      type: Function,
+      required: true,
+    },
   },
-  traerNombresAtributos: {
-    type: Function,
-    required: true,
+  emits: ["duplicar", "editar", "eliminar"],
+  data() {
+    return {
+      colors: [
+        "bg-red-500",
+        "bg-blue-500",
+        "bg-green-500",
+        "bg-yellow-500",
+        "bg-purple-500",
+        "bg-pink-500",
+        "bg-teal-500",
+        "bg-orange-500",
+        "bg-cyan-500",
+        "bg-rose-500",
+        "bg-lime-500",
+        "bg-amber-500",
+        "bg-indigo-500",
+        "bg-emerald-500",
+      ],
+    };
   },
-  traerNombresValoresAtributos: {
-    type: Function,
-    required: true,
+  methods: {
+    getColorClass() {
+      return this.colors[Math.floor(Math.random() * this.colors.length)];
+    },
   },
-});
-
-const emits = defineEmits(["duplicar", "editar", "eliminar"]);
-
-const getColorClass = () => {
-  const colors = [
-    "bg-red-500",
-    "bg-blue-500",
-    "bg-green-500",
-    "bg-yellow-500",
-    "bg-purple-500",
-    "bg-pink-500",
-    "bg-teal-500",
-    "bg-orange-500",
-    "bg-cyan-500",
-    "bg-rose-500",
-    "bg-lime-500",
-    "bg-amber-500",
-    "bg-indigo-500",
-    "bg-emerald-500",
-  ];
-  return colors[Math.floor(Math.random() * colors.length)];
 };
 </script>
 
